@@ -1,18 +1,20 @@
 import unittest
-from app import app, db
+import os
+from app import create_app, db
 from models import Todo
 
 class TestTodoApp(unittest.TestCase):
 
     def setUp(self):
-        app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.client = app.test_client()
-        with app.app_context():
+        self.app = create_app()
+        self.app.config['TESTING'] = True
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        self.client = self.app.test_client()
+        with self.app.app_context():
             db.create_all()
 
     def tearDown(self):
-        with app.app_context():
+        with self.app.app_context():
             db.session.remove()
             db.drop_all()
 
@@ -35,7 +37,6 @@ class TestTodoApp(unittest.TestCase):
         self.assertEqual(response.json["task"], todo_data["task"])
 
     def test_get_todo(self):
-        # First, create a todo
         todo_data = {
             "name": "Test Todo",
             "description": "This is a test",
@@ -44,7 +45,6 @@ class TestTodoApp(unittest.TestCase):
         create_response = self.client.post('/todos', json=todo_data)
         todo_id = create_response.json["id"]
 
-        # Now, try to get the todo
         get_response = self.client.get(f'/todos/{todo_id}')
         self.assertEqual(get_response.status_code, 200)
         self.assertEqual(get_response.json["id"], todo_id)
